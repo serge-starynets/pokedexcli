@@ -29,7 +29,7 @@ mapb: List the previous locations areas`)
 }
 
 func commMap(c *config.Config) error {
-	locations, err := pokeapi.GetLocationAreas(c.Next)
+	locations, err := pokeapi.GetLocationAreas(c.Next, c.Cache)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func commMapBack(c *config.Config) error {
 		fmt.Println("you're on the first page")
 		return nil
 	}
-	locations, err := pokeapi.GetLocationAreas(c.Previous)
+	locations, err := pokeapi.GetLocationAreas(c.Previous, c.Cache)
 	if err != nil {
 		return err
 	}
