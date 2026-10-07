@@ -9,6 +9,7 @@ import (
 )
 
 var locationUrl = "https://pokeapi.co/api/v2/location-area/"
+var pokemonUrl = "https://pokeapi.co/api/v2/pokemon/"
 
 type LocAreas struct {
 	Count    int
@@ -18,6 +19,33 @@ type LocAreas struct {
 		Name string
 		Url  string
 	}
+}
+
+type LocationPokemons struct {
+	PokemonEncounters []struct {
+		Pokemon struct {
+			Name string `json:"name"`
+			Url  string `json:"url"`
+		} `json:"pokemon"`
+	} `json:"pokemon_encounters"`
+}
+
+type Pokemon struct {
+	Name           string `json:"name"`
+	BaseExperience int    `json:"base_experience"`
+	Height         int    `json:"height"`
+	Weight         int    `json:"weight"`
+	Stats          []struct {
+		BaseStat int `json:"base_stat"`
+		Stat     struct {
+			Name string `json:"name"`
+		} `json:"stat"`
+	} `json:"stats"`
+	Types []struct {
+		Type struct {
+			Name string `json:"name"`
+		} `json:"type"`
+	} `json:"types"`
 }
 
 func fetchBody(url string) ([]byte, error) {
@@ -30,6 +58,10 @@ func fetchBody(url string) ([]byte, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("%w", err)
+	}
+
+	if res.StatusCode == 404 {
+		return nil, fmt.Errorf("Unknown resource")
 	}
 
 	if res.StatusCode > 299 {
@@ -54,6 +86,7 @@ func GetLocationAreas(url string, cache *pokecache.Cache) (LocAreas, error) {
 		if err != nil {
 			return locs, err
 		}
+		cache.Add(url, body)
 	}
 
 	err := json.Unmarshal(body, &locs)
@@ -62,7 +95,47 @@ func GetLocationAreas(url string, cache *pokecache.Cache) (LocAreas, error) {
 		return locs, err
 	}
 
-	cache.Add(url, body)
-
 	return locs, nil
+}
+
+func GetLocationPokemons(name string, cache *pokecache.Cache) (LocationPokemons, error) {
+	pokemons := LocationPokemons{}
+	locUrl := locationUrl + name
+
+	body, ok := cache.Get(locUrl)
+	if !ok {
+		var err error
+		body, err = fetchBody(locUrl)
+		if err != nil {
+			return pokemons, err
+		}
+		cache.Add(locUrl, body)
+	}
+
+	err := json.Unmarshal(body, &pokemons)
+
+	if err != nil {
+		return pokemons, err
+	}
+
+	return pokemons, nil
+
+}
+
+func GetPokemon(name string) (Pokemon, error) {
+	pokemon := Pokemon{}
+	url := pokemonUrl + name
+
+	body, err := fetchBody(url)
+	if err != nil {
+		return pokemon, err
+	}
+
+	err = json.Unmarshal(body, &pokemon)
+
+	if err != nil {
+		return pokemon, err
+	}
+
+	return pokemon, nil
 }
